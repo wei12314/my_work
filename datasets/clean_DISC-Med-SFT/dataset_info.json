@@ -1,0 +1,58 @@
+{
+  "builder_name": "json",
+  "citation": "",
+  "config_name": "default",
+  "dataset_name": "disc-med-sft",
+  "dataset_size": 747572407,
+  "description": "",
+  "download_checksums": {
+    "/home/bdhapp/ft/my_work/datasets/DISC-Med-SFT/DISC-Med-SFT_released.jsonl": {
+      "num_bytes": 820422846,
+      "checksum": null
+    }
+  },
+  "download_size": 820422846,
+  "features": {
+    "_id": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "source": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "conversation": [
+      {
+        "role": {
+          "dtype": "string",
+          "_type": "Value"
+        },
+        "content": {
+          "dtype": "string",
+          "_type": "Value"
+        }
+      }
+    ]
+  },
+  "homepage": "",
+  "license": "",
+  "size_in_bytes": 1567995253,
+  "splits": {
+    "train": {
+      "name": "train",
+      "num_bytes": 747572407,
+      "num_examples": 464898,
+      "shard_lengths": [
+        278594,
+        186304
+      ],
+      "dataset_name": "disc-med-sft"
+    }
+  },
+  "version": {
+    "version_str": "0.0.0",
+    "major": 0,
+    "minor": 0,
+    "patch": 0
+  }
+}
