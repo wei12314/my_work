@@ -1,0 +1,106 @@
+from datasets import load_from_disk
+from distilabel.models.llms import TransformersLLM, OpenAILLM
+from prompt import SYSTEM_PROMPT, test_prompt, SUGGEST_PROMPT
+import json
+from openai import OpenAI
+from typing import Dict, List, Any
+
+
+# raw_dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/fine_end_DISC")
+
+# for d in raw_dataset:
+#     print(d)
+#     break
+
+# 1. 提取出user的话，到数组中
+# 2. 按照轮次，将history+user对话数组中的话，传给原始qwen2.5 7B，让其生成响应，需要一个history数组，将新的user话和模型生成对话，加入其中
+# 3. 将history，传给豆包等大模型，让其参考原始对话，并对模型多轮问答，最后一轮进行建议
+# 4. 将建议+最后一轮问答对，传给qwen2.5 7B 2，让其改善输出，将该输出存入到结果数组、
+# 5. 保存结果数组、history多轮对话
+
+def self_distillation(example: Dict[str, Any]):
+    dialogues = example["conversation"] # 获得一条对话
+    user_dialogues = [] # 用户说的话
+    real_doctor = [] # 真实医生说的话
+    history = [] # 历史记录
+    result = [] # 优化结果
+    result_dialogues = [] # 优化结果合并
+    suggest = [] # 传给模型提建议
+
+    for d in dialogues:
+        if d['role'] == 'user':
+            user_dialogues.append(d['content'])
+        else:
+            real_doctor.append(d['content'])
+    
+    for user_d, real_d in zip(user_dialogues, real_doctor):
+        history.append({'role': 'user', 'content':user_d})
+        suggest.append({'role': 'user', 'content':user_d})
+
+        response = llm_chat(history)
+        history.append(response)
+        suggest.append(response)
+
+        suggest.append({'role': 'real_doctor', 'content':real_d})
+    
+    # print(history)
+    # return
+
+        suggest_response = gpt_suggest(suggest)
+        result.append(suggest_response)
+    print(history)
+    print(result)
+    return
+
+    #     optimize_response = llm_chat_optimize(history, coze_response)
+    #     result.append(optimize_response)
+    
+    # return {'history': history, 'optimize_chat': result}
+
+
+def llm_chat(messages: List[Dict[str, str]]) -> Dict[str, str]:
+    system_message = system_message_for(test_prompt)
+    messages = [system_message] + messages
+    # print(messages)
+    # Call the model
+    output = llm.generate_outputs(inputs=[messages], max_new_tokens=1024, temperature=0.3)
+    content = output[0]['generations'][0]
+    return {"role": "assistant", "content": content}
+    # [{'generations': ["That's great to hear! A good day can make all the difference. Is there anything specific you'd like to do or achieve today? Whether it's working on a project, spending time with friends and family, or trying something new, I'm here to help or just chat about it with you."], 
+    # 'statistics': {'input_tokens': [22], 
+    # 'output_tokens': [61]}}]
+
+def coze_suggest(history):
+    pass
+
+def gpt_suggest(suggest: List[Dict[str, str]]) -> str:
+    suggest_str = json.dumps(suggest, ensure_ascii=False)
+    user_prompt = SUGGEST_PROMPT.format(dialogue = suggest_str)
+    # user_prompt += suggest_str
+    # user_prompt += "输出格式如下:{'suggestion':'相关的建议..'}"
+    response = client.chat.completions.create(
+        model = "deepseek-chat",
+        messages= [{'role':'user','content':user_prompt}],
+        response_format={"type": "json_object"}
+    )
+    # output = llm_deepseek.generate_outputs(inputs=[[{"role": "user", "content": "Hello world!"}]])
+    return response.choices[0].message.content
+
+def llm_chat_optimize(history, coze_response):
+    user_chat = history[-2]["content"]
+    assistant_chat = history[-1]["content"]
+    user_message = ""
+    pass
+
+def system_message_for(system_prompt):
+    return {'role':'system', 'content':system_prompt}
+
+if __name__ == "__main__":
+    raw_dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/fine_end_DISC")
+    llm = TransformersLLM(model="/home/bdhapp/ft/models/qwen2.5-7B-Instruct")
+    llm.load()
+    client = OpenAI(api_key="sk-b4078ae59856471ebb5b088c8db0d464", base_url="https://api.deepseek.com")
+
+    for d in raw_dataset:
+        self_distillation(d)
+        break
