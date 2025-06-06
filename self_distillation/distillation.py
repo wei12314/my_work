@@ -1,6 +1,6 @@
 from datasets import load_from_disk
 from distilabel.models.llms import TransformersLLM, OpenAILLM
-from prompt import SYSTEM_PROMPT, SUGGEST_PROMPT, USER_PROMPT
+from prompt import SYSTEM_PROMPT, SUGGEST_PROMPT, USER_PROMPT, USER_PROMPT_V2
 import json
 from openai import OpenAI
 from typing import Dict, List, Any
@@ -52,8 +52,9 @@ def self_distillation(example: Dict[str, Any]):
         suggest_response = gpt_suggest(suggest)
         suggest_response_json = json.loads(suggest_response)
         suggest_responses.append(suggest_response_json)
-        optimize_response = llm_chat_optimize(history, suggest_response_json)
-        result.append(optimize_response)
+        # optimize_response = llm_chat_optimize(history, suggest_response_json)
+        qa_optimize_response = llm_qa_optimize(history, suggest_response_json)
+        result.append(qa_optimize_response)
     print("-------history--------")
     print(history)
     print("-------suggestion--------")
@@ -68,41 +69,49 @@ def self_distillation(example: Dict[str, Any]):
     
     # return {'history': history, 'optimize_chat': result}
 
-
+# 使用slm生成对话
 def llm_chat(messages: List[Dict[str, str]]) -> Dict[str, str]:
     system_message = system_message_for(SYSTEM_PROMPT)
     messages = [system_message] + messages
-    # print(messages)
-    # Call the model
+
     output = llm.generate_outputs(inputs=[messages], max_new_tokens=1024, temperature=0.3)
     content = output[0]['generations'][0]
     return {"role": "assistant", "content": content}
-    # [{'generations': ["That's great to hear! A good day can make all the difference. Is there anything specific you'd like to do or achieve today? Whether it's working on a project, spending time with friends and family, or trying something new, I'm here to help or just chat about it with you."], 
-    # 'statistics': {'input_tokens': [22], 
-    # 'output_tokens': [61]}}]
+    
 
+# TODO: 看情况完成coze建议
 def coze_suggest(history):
     pass
 
+# 使用大模型给出相关建议和优化后的对话
 def gpt_suggest(suggest: List[Dict[str, str]]) -> str:
     suggest_str = json.dumps(suggest, ensure_ascii=False)
     user_prompt = SUGGEST_PROMPT.format(dialogue = suggest_str)
-    # user_prompt += suggest_str
-    # user_prompt += "输出格式如下:{'suggestion':'相关的建议..'}"
+
     response = client.chat.completions.create(
         model = remote_model,
         messages= [{'role':'user','content':user_prompt}],
         response_format={"type": "json_object"}
     )
-    # output = llm_deepseek.generate_outputs(inputs=[[{"role": "user", "content": "Hello world!"}]])
+
     return response.choices[0].message.content
 
+# 使用原始slm根据大模型建议，对自己生成的对话进行优化
 def llm_chat_optimize(history: List[Dict[str, str]], suggest: Dict[str, str]) -> Dict[str, str]:
     user_chat = history[-2]["content"]
     assistant_chat = history[-1]["content"]
     dialogue = json.dumps([{"role":"user", "content":user_chat}, {"role":"assistant", "content":assistant_chat}],ensure_ascii=False)
     suggestion = suggest["suggestion"]
     user_prompt = USER_PROMPT.format(suggestion = suggestion, dialogue = dialogue)
+    output = llm.generate_outputs(inputs=[[{"role":"user", "content":user_prompt}]], max_new_tokens=1024, temperature=0.3)
+    content = output[0]['generations'][0]
+    return {"role": "assistant", "content": content}
+
+# 使用原始slm根据大模型建议，对自己生成的对话进行优化
+def llm_qa_optimize(history: List[Dict[str, str]], suggest: Dict[str, str]) -> Dict[str, str]:
+    user_chat = history[-2]["content"]
+    dialogue = suggest["fine_assistant_dialogue"]
+    user_prompt = USER_PROMPT_V2.format(question = user_chat, dialogue = dialogue)
     output = llm.generate_outputs(inputs=[[{"role":"user", "content":user_prompt}]], max_new_tokens=1024, temperature=0.3)
     content = output[0]['generations'][0]
     return {"role": "assistant", "content": content}

@@ -2,3 +2,5 @@ datasets/DISC-Med-SFT/*
 **/__pycache__
 **/cache-*.arrow
 **/models
+**/.env
+.vscode/
