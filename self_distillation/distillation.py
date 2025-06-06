@@ -1,9 +1,11 @@
 from datasets import load_from_disk
 from distilabel.models.llms import TransformersLLM, OpenAILLM
-from prompt import SYSTEM_PROMPT, test_prompt, SUGGEST_PROMPT
+from prompt import SYSTEM_PROMPT, SUGGEST_PROMPT, USER_PROMPT
 import json
 from openai import OpenAI
 from typing import Dict, List, Any
+from dotenv import load_dotenv
+import os
 
 
 # raw_dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/fine_end_DISC")
@@ -26,6 +28,7 @@ def self_distillation(example: Dict[str, Any]):
     result = [] # 优化结果
     result_dialogues = [] # 优化结果合并
     suggest = [] # 传给模型提建议
+    suggest_responses = [] # 模型输出的建议
 
     for d in dialogues:
         if d['role'] == 'user':
@@ -47,9 +50,17 @@ def self_distillation(example: Dict[str, Any]):
     # return
 
         suggest_response = gpt_suggest(suggest)
-        result.append(suggest_response)
+        suggest_response_json = json.loads(suggest_response)
+        suggest_responses.append(suggest_response_json)
+        optimize_response = llm_chat_optimize(history, suggest_response_json)
+        result.append(optimize_response)
+    print("-------history--------")
     print(history)
+    print("-------suggestion--------")
+    print(suggest_responses)
+    print("-------optimize--------")
     print(result)
+    # print(json.loads(result[0]))
     return
 
     #     optimize_response = llm_chat_optimize(history, coze_response)
@@ -59,7 +70,7 @@ def self_distillation(example: Dict[str, Any]):
 
 
 def llm_chat(messages: List[Dict[str, str]]) -> Dict[str, str]:
-    system_message = system_message_for(test_prompt)
+    system_message = system_message_for(SYSTEM_PROMPT)
     messages = [system_message] + messages
     # print(messages)
     # Call the model
@@ -79,27 +90,39 @@ def gpt_suggest(suggest: List[Dict[str, str]]) -> str:
     # user_prompt += suggest_str
     # user_prompt += "输出格式如下:{'suggestion':'相关的建议..'}"
     response = client.chat.completions.create(
-        model = "doubao-1-5-pro-32k-250115",
+        model = remote_model,
         messages= [{'role':'user','content':user_prompt}],
         response_format={"type": "json_object"}
     )
     # output = llm_deepseek.generate_outputs(inputs=[[{"role": "user", "content": "Hello world!"}]])
     return response.choices[0].message.content
 
-def llm_chat_optimize(history, coze_response):
+def llm_chat_optimize(history: List[Dict[str, str]], suggest: Dict[str, str]) -> Dict[str, str]:
     user_chat = history[-2]["content"]
     assistant_chat = history[-1]["content"]
-    user_message = ""
-    pass
+    dialogue = json.dumps([{"role":"user", "content":user_chat}, {"role":"assistant", "content":assistant_chat}],ensure_ascii=False)
+    suggestion = suggest["suggestion"]
+    user_prompt = USER_PROMPT.format(suggestion = suggestion, dialogue = dialogue)
+    output = llm.generate_outputs(inputs=[[{"role":"user", "content":user_prompt}]], max_new_tokens=1024, temperature=0.3)
+    content = output[0]['generations'][0]
+    return {"role": "assistant", "content": content}
 
 def system_message_for(system_prompt):
     return {'role':'system', 'content':system_prompt}
 
 if __name__ == "__main__":
+    load_dotenv()
+    # api_key = os.getenv("GM_SECRET_KEY")
+    # base_url = os.getenv("GM_BASE_URL")
+    # remote_model = os.getenv("GM_MODEL")
+    api_key = os.getenv("DS_SECRET_KEY")
+    base_url = os.getenv("DS_BASE_URL")
+    remote_model = os.getenv("DS_MODEL")
+
     raw_dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/fine_end_DISC")
     llm = TransformersLLM(model="/home/bdhapp/ft/models/qwen2.5-7B-Instruct")
     llm.load()
-    client = OpenAI(api_key="583cfb86-cccc-4e5f-9b13-502bb8f59491", base_url="https://ark.cn-beijing.volces.com/api/v3")
+    client = OpenAI(api_key=api_key, base_url=base_url)
 
     for d in raw_dataset:
         self_distillation(d)
