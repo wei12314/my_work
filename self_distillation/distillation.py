@@ -79,7 +79,7 @@ def gpt_suggest(suggest: List[Dict[str, str]]) -> str:
     # user_prompt += suggest_str
     # user_prompt += "输出格式如下:{'suggestion':'相关的建议..'}"
     response = client.chat.completions.create(
-        model = "deepseek-chat",
+        model = "doubao-1-5-pro-32k-250115",
         messages= [{'role':'user','content':user_prompt}],
         response_format={"type": "json_object"}
     )
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     raw_dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/fine_end_DISC")
     llm = TransformersLLM(model="/home/bdhapp/ft/models/qwen2.5-7B-Instruct")
     llm.load()
-    client = OpenAI(api_key="sk-b4078ae59856471ebb5b088c8db0d464", base_url="https://api.deepseek.com")
+    client = OpenAI(api_key="583cfb86-cccc-4e5f-9b13-502bb8f59491", base_url="https://ark.cn-beijing.volces.com/api/v3")
 
     for d in raw_dataset:
         self_distillation(d)

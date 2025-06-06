@@ -47,10 +47,10 @@ test_prompt = """您现在是三甲医院内分泌科副主任医师，拥有15�
 
 SUGGEST_PROMPT = """
 # 任务
-作为糖尿病健康管理医疗对话优化专家，请聚焦于最后一轮对话的内容分析小模型回复的对话效率，提出精简建议。核心原则：  
+作为糖尿病健康管理医疗对话优化专家，请聚焦于最后一轮对话中的内容分析和role=assistant回复的对话效率，提出精简建议，并参考role=real_doctor语句，结合建议输出相关优化后的对话回复。核心原则：  
 **保持医疗准确性 → 删除冗余内容 → 强化重点信息 → 优化对话流**
 
-# 待优化对话片段
+# 待优化对话，请聚焦于最后一轮
 {dialogue}
 
 # 优化维度
@@ -59,7 +59,7 @@ SUGGEST_PROMPT = """
    - 是否多轮重复相同医学结论？
 
 2. **结构清晰度**  
-   - 是否使用分层表述（如分点/加粗）？
+   - 是否使用分层表述？
    - 是否将核心建议前置？
 
 3. **焦点偏移**  
@@ -73,7 +73,8 @@ SUGGEST_PROMPT = """
 # 输出格式为下述json格式
 {{
   "suggestion": "优化建议.."
+  "fine_assistant_dialogue":"优化后的最后一轮小模型输出"
 }}
 """
-print(SUGGEST_PROMPT.format(dialogue="你好"))
+# print(SUGGEST_PROMPT.format(dialogue="你好"))
 # print(SUGGEST_PROMPT)
