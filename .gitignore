@@ -4,3 +4,6 @@ datasets/DISC-Med-SFT/*
 **/models
 **/.env
 .vscode/
+**/finetune_models
+**/unsloth_compiled_cache
+datasets/fine_end_DISC/tmp30q0xd5x

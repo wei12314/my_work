@@ -7,13 +7,6 @@ from typing import Dict, List, Any
 from dotenv import load_dotenv
 import os
 
-
-# raw_dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/fine_end_DISC")
-
-# for d in raw_dataset:
-#     print(d)
-#     break
-
 # 1. 提取出user的话，到数组中
 # 2. 按照轮次，将history+user对话数组中的话，传给原始qwen2.5 7B，让其生成响应，需要一个history数组，将新的user话和模型生成对话，加入其中
 # 3. 将history，传给豆包等大模型，让其参考原始对话，并对模型多轮问答，最后一轮进行建议
@@ -26,9 +19,9 @@ def self_distillation(example: Dict[str, Any]):
     real_doctor = [] # 真实医生说的话
     history = [] # 历史记录
     result = [] # 优化结果
-    result_dialogues = [] # 优化结果合并
     suggest = [] # 传给模型提建议
     suggest_responses = [] # 模型输出的建议
+    result_dialogues = [] # 优化结果合并
 
     for d in dialogues:
         if d['role'] == 'user':
@@ -39,8 +32,9 @@ def self_distillation(example: Dict[str, Any]):
     for user_d, real_d in zip(user_dialogues, real_doctor):
         history.append({'role': 'user', 'content':user_d})
         suggest.append({'role': 'user', 'content':user_d})
+        result_dialogues.append({'role': 'user', 'content':user_d})
 
-        response = llm_chat(history)
+        response = llm_chat(history) # 模型原始输出
         history.append(response)
         suggest.append(response)
 
@@ -49,20 +43,22 @@ def self_distillation(example: Dict[str, Any]):
     # print(history)
     # return
 
-        suggest_response = gpt_suggest(suggest)
+        suggest_response = gpt_suggest(suggest) # 大模型给出建议
         suggest_response_json = json.loads(suggest_response)
         suggest_responses.append(suggest_response_json)
         # optimize_response = llm_chat_optimize(history, suggest_response_json)
-        qa_optimize_response = llm_qa_optimize(history, suggest_response_json)
-        result.append(qa_optimize_response)
-    print("-------history--------")
-    print(history)
-    print("-------suggestion--------")
-    print(suggest_responses)
-    print("-------optimize--------")
-    print(result)
+        qa_optimize_response = llm_qa_optimize(history, suggest_response_json) # 模型结合建议，重新规划输出
+        # result.append(qa_optimize_response) 测试使用
+        result_dialogues.append(qa_optimize_response) # 最终结果
+    # print("-------history--------")
+    # print(history)
+    # print("-------suggestion--------")
+    # print(suggest_responses)
+    # print("-------optimize--------")
+    # print(result_dialogues)
+
     # print(json.loads(result[0]))
-    return
+    return{"suggest": suggest_responses, "result_dialogues": result_dialogues}
 
     #     optimize_response = llm_chat_optimize(history, coze_response)
     #     result.append(optimize_response)
@@ -124,15 +120,41 @@ if __name__ == "__main__":
     # api_key = os.getenv("GM_SECRET_KEY")
     # base_url = os.getenv("GM_BASE_URL")
     # remote_model = os.getenv("GM_MODEL")
+
     api_key = os.getenv("DS_SECRET_KEY")
     base_url = os.getenv("DS_BASE_URL")
     remote_model = os.getenv("DS_MODEL")
 
+    # api_key = os.getenv("DB_DS_SECRET_KEY")
+    # base_url = os.getenv("DB_DS_BASE_URL")
+    # remote_model = os.getenv("DB_DS_MODEL")
+
+    # api_key = os.getenv("DB_SECRET_KEY")
+    # base_url = os.getenv("DB_BASE_URL")
+    # remote_model = os.getenv("DB_MODEL")
+
+    # api_key = os.getenv("GPT4_SECRET_KEY")
+    # base_url = os.getenv("GPT4_BASE_URL")
+    # remote_model = os.getenv("GPT4_MODEL")
+
+    # api_key = os.getenv("GPT-4o-mini_SECRET_KEY")
+    # base_url = os.getenv("GPT-4o-mini_BASE_URL")
+    # remote_model = os.getenv("GPT-4o-mini_MODEL")
+
+    # api_key = os.getenv("GPT-4.1Mini_SECRET_KEY")
+    # base_url = os.getenv("GPT-4.1Mini_BASE_URL")
+    # remote_model = os.getenv("GPT-4.1Mini_MODEL")
+
     raw_dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/fine_end_DISC")
+    some_dataset = raw_dataset.shuffle(seed=42).select(range(1000))
     llm = TransformersLLM(model="/home/bdhapp/ft/models/qwen2.5-7B-Instruct")
     llm.load()
     client = OpenAI(api_key=api_key, base_url=base_url)
 
-    for d in raw_dataset:
-        self_distillation(d)
-        break
+    test_dataset = some_dataset.map(self_distillation)
+    test_dataset.save_to_disk("/home/bdhapp/ft/my_work/datasets/distill/100_distill_test")
+
+    # 测试使用
+    # for d in raw_dataset:
+    #     self_distillation(d)
+    #     break
