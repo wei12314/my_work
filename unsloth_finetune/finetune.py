@@ -45,7 +45,8 @@ tokenizer = get_chat_template(
 )
 
 def formatting_prompts_func(examples):
-    convos = examples["result_dialogues"]
+    convos = examples["conversation"] # 原始对话
+    # convos = examples["result_dialogues"] # 自蒸馏对话
     texts = [tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False) for convo in convos]
     return { "text" : texts, }
 
@@ -76,7 +77,7 @@ trainer = SFTTrainer(
         weight_decay = 0.01,
         lr_scheduler_type = "linear",
         seed = 3407,
-        output_dir = "/home/bdhapp/ft/my_work/finetune_models/epoch_3",
+        output_dir = "/home/bdhapp/ft/my_work/finetune_models/raw_epoch_3",
         report_to = "none", # Use this for WandB etc
     ),
 )
