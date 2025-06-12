@@ -1,6 +1,6 @@
 from datasets import load_from_disk
 from distilabel.models.llms import TransformersLLM, OpenAILLM
-from prompt import SYSTEM_PROMPT, SUGGEST_PROMPT, USER_PROMPT, USER_PROMPT_V2
+from prompt import SYSTEM_PROMPT
 import json
 from openai import OpenAI
 from typing import Dict, List, Any
@@ -39,26 +39,8 @@ def self_distillation(example: Dict[str, Any]):
         suggest.append(response)
 
         suggest.append({'role': 'real_doctor', 'content':real_d})
-    
-    # print(history)
-    # return
 
-        suggest_response = gpt_suggest(suggest) # 大模型给出建议
-        suggest_response_json = json.loads(suggest_response)
-        suggest_responses.append(suggest_response_json)
-        # optimize_response = llm_chat_optimize(history, suggest_response_json)
-        qa_optimize_response = llm_qa_optimize(history, suggest_response_json) # 模型结合建议，重新规划输出
-        # result.append(qa_optimize_response) 测试使用
-        result_dialogues.append(qa_optimize_response) # 最终结果
-    # print("-------history--------")
-    # print(history)
-    # print("-------suggestion--------")
-    # print(suggest_responses)
-    # print("-------optimize--------")
-    # print(result_dialogues)
-
-    # print(json.loads(result[0]))
-    return{"suggest": suggest_responses, "result_dialogues": result_dialogues}
+    return{"suggest": suggest}
 
     #     optimize_response = llm_chat_optimize(history, coze_response)
     #     result.append(optimize_response)
@@ -79,18 +61,7 @@ def llm_chat(messages: List[Dict[str, str]]) -> Dict[str, str]:
 def coze_suggest(history):
     pass
 
-# 使用大模型给出相关建议和优化后的对话
-def gpt_suggest(suggest: List[Dict[str, str]]) -> str:
-    suggest_str = json.dumps(suggest, ensure_ascii=False)
-    user_prompt = SUGGEST_PROMPT.format(dialogue = suggest_str)
 
-    response = client.chat.completions.create(
-        model = remote_model,
-        messages= [{'role':'user','content':user_prompt}],
-        response_format={"type": "json_object"}
-    )
-
-    return response.choices[0].message.content
 
 # 使用原始slm根据大模型建议，对自己生成的对话进行优化
 def llm_chat_optimize(history: List[Dict[str, str]], suggest: Dict[str, str]) -> Dict[str, str]:
@@ -116,40 +87,12 @@ def system_message_for(system_prompt):
     return {'role':'system', 'content':system_prompt}
 
 if __name__ == "__main__":
-    load_dotenv()
-    # api_key = os.getenv("GM_SECRET_KEY")
-    # base_url = os.getenv("GM_BASE_URL")
-    # remote_model = os.getenv("GM_MODEL")
 
-    api_key = os.getenv("DS_SECRET_KEY")
-    base_url = os.getenv("DS_BASE_URL")
-    remote_model = os.getenv("DS_MODEL")
-
-    # api_key = os.getenv("DB_DS_SECRET_KEY")
-    # base_url = os.getenv("DB_DS_BASE_URL")
-    # remote_model = os.getenv("DB_DS_MODEL")
-
-    # api_key = os.getenv("DB_SECRET_KEY")
-    # base_url = os.getenv("DB_BASE_URL")
-    # remote_model = os.getenv("DB_MODEL")
-
-    # api_key = os.getenv("GPT4_SECRET_KEY")
-    # base_url = os.getenv("GPT4_BASE_URL")
-    # remote_model = os.getenv("GPT4_MODEL")
-
-    # api_key = os.getenv("GPT-4o-mini_SECRET_KEY")
-    # base_url = os.getenv("GPT-4o-mini_BASE_URL")
-    # remote_model = os.getenv("GPT-4o-mini_MODEL")
-
-    # api_key = os.getenv("GPT-4.1Mini_SECRET_KEY")
-    # base_url = os.getenv("GPT-4.1Mini_BASE_URL")
-    # remote_model = os.getenv("GPT-4.1Mini_MODEL")
 
     raw_dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/fine_end_DISC")
     some_dataset = raw_dataset.shuffle(seed=42).select(range(10))
     llm = TransformersLLM(model="/home/bdhapp/ft/models/qwen2.5-7B-Instruct")
     llm.load()
-    client = OpenAI(api_key=api_key, base_url=base_url)
 
     test_dataset = some_dataset.map(self_distillation)
     test_dataset.save_to_disk("/home/bdhapp/ft/my_work/datasets/distill/100_distill_test")

@@ -9,7 +9,7 @@ from transformers import TrainingArguments, DataCollatorForSeq2Seq
 from unsloth import is_bfloat16_supported
 
 
-dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/distill/100_distill_test")
+dataset = load_from_disk("/home/bdhapp/ft/my_work/datasets/distill/1000_distill_test")
 
 
 max_seq_length = 2048 # Choose any! We auto support RoPE Scaling internally!
@@ -66,7 +66,7 @@ trainer = SFTTrainer(
     args = TrainingArguments(
         per_device_train_batch_size = 2,
         gradient_accumulation_steps = 4,
-        warmup_steps = 30,
+        warmup_steps = 100,
         num_train_epochs = 3, # Set this for 1 full training run.
         # max_steps = 60,
         learning_rate = 2e-4,
@@ -77,7 +77,7 @@ trainer = SFTTrainer(
         weight_decay = 0.01,
         lr_scheduler_type = "linear",
         seed = 3407,
-        output_dir = "/home/bdhapp/ft/my_work/finetune_models/raw_epoch_3",
+        output_dir = "/home/bdhapp/ft/my_work/finetune_models/1k_raw_epoch_3",
         report_to = "none", # Use this for WandB etc
     ),
 )

@@ -24,7 +24,8 @@ def inference_model(user_prompt, history):
 if __name__ == "__main__":
     max_seq_length = 2048 # Choose any! We auto support RoPE Scaling internally!
     dtype = None # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
-    load_in_4bit = True
+    load_in_4bit = False
+    model_name = "/home/bdhapp/ft/my_work/finetune_models/1k_epoch_3/checkpoint-375"
 
     # model_epoch3, tokenizer = FastLanguageModel.from_pretrained(
     #         model_name = "/home/bdhapp/ft/my_work/finetune_models/epoch_3/checkpoint-36", # YOUR MODEL YOU USED FOR TRAINING
@@ -35,13 +36,13 @@ if __name__ == "__main__":
     # FastLanguageModel.for_inference(model_epoch3) # Enable native 2x faster inference
 
     model, tokenizer = FastLanguageModel.from_pretrained(
-            model_name = "/home/bdhapp/ft/models/qwen2.5-7B-Instruct", # YOUR MODEL YOU USED FOR TRAINING
+            model_name = model_name, # YOUR MODEL YOU USED FOR TRAINING
             max_seq_length = max_seq_length,
             dtype = dtype,
             load_in_4bit = load_in_4bit,
         )
     FastLanguageModel.for_inference(model)
 
-    demo = gr.ChatInterface(inference_model, type="messages",examples=["空腹血糖6.8，正常吗？", "hola", "merhaba"], title="糖尿病健康管理对话助手")
+    demo = gr.ChatInterface(inference_model, type="messages",examples=["空腹血糖6.8，正常吗？", "糖尿病患者，神经系统会不会受到影响，比如记忆力大不如前，脾气暴躁，正常对话有点困难", "饮食怎么注意呀"], title="糖尿病健康管理对话助手", save_history=True)
 
-    demo.launch("server_name=0.0.0.0")
+    demo.launch(server_name="0.0.0.0", server_port=7861)
