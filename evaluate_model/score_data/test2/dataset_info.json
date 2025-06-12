@@ -1,0 +1,44 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "full_conversation": [
+      {
+        "content": {
+          "dtype": "string",
+          "_type": "Value"
+        },
+        "role": {
+          "dtype": "string",
+          "_type": "Value"
+        }
+      }
+    ],
+    "socre": {
+      "score": {
+        "authenticity": {
+          "dtype": "int64",
+          "_type": "Value"
+        },
+        "comprehensiveness": {
+          "dtype": "int64",
+          "_type": "Value"
+        },
+        "professionalism": {
+          "dtype": "int64",
+          "_type": "Value"
+        },
+        "reason": {
+          "dtype": "string",
+          "_type": "Value"
+        },
+        "safety": {
+          "dtype": "int64",
+          "_type": "Value"
+        }
+      }
+    }
+  },
+  "homepage": "",
+  "license": ""
+}

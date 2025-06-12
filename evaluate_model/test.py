@@ -1,6 +1,7 @@
 from datasets import load_from_disk
 from unsloth import FastLanguageModel
 import argparse
+import torch
 
 
 def get_multiturn(example):
@@ -13,8 +14,8 @@ def get_multiturn(example):
     
     for user_dialogue in user_dialogues:
         history.append({"role":"user", "content": user_dialogue})
-        response = model_chat(history)
-        history.append({"role":"assistant", "content": response})
+        # response = model_chat(history)
+        # history.append({"role":"assistant", "content": response})
     return {"model_generation": history}
 
 
@@ -42,6 +43,7 @@ if __name__ == "__main__":
     max_seq_length = 2048 # Choose any! We auto support RoPE Scaling internally!
     dtype = None # None for auto detection. Float16 for Tesla T4, V100, Bfloat16 for Ampere+
     load_in_4bit = True
+    load_in_8bit = False
 
 
     model, tokenizer = FastLanguageModel.from_pretrained(
@@ -49,6 +51,7 @@ if __name__ == "__main__":
             max_seq_length = max_seq_length,
             dtype = dtype,
             load_in_4bit = load_in_4bit,
+            load_in_8bit = load_in_8bit
         )
     FastLanguageModel.for_inference(model)
 
